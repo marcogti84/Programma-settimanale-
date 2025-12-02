@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programma Settimanale</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f1f1f1;
+        padding: 12px;
+    }
+
+    select, input, textarea {
+        width: 100%;
+        padding: 8px;
+        font-size: 16px;
+        margin-top: 6px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+
+    .card {
+        background: #fff;
+        padding: 14px;
+        border-radius: 12px;
+        margin-top: 18px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+
+    .title {
+        font-size: 19px;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .sub {
+        font-size: 15px;
+        opacity: 0.7;
+        margin-bottom: 10px;
+    }
+
+    .row {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .row input {
+        flex: 1;
+    }
+
+    .result {
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 16px;
+    }
+
+    .verde { background: #c6f5c4; }
+    .giallo { background: #fff4b2; }
+    .rosso { background: #ffc9c9; }
+
+    .badge {
+        margin-top: 6px;
+        text-align: center;
+        font-size: 14px;
+    }
+
+    .badge-extra { color: #a88600; }
+    .badge-ferie { color: #b30000; }
+
+</style>
+</head>
+<body>
+
+<h2 style="text-align:center;">Programma Settimanale</h2>
+
+<label><b>Seleziona reparto</b></label>
+<select id="filtroReparto" onchange="filtra()">
+    <option value="all">Tutti i reparti</option>
+</select>
+
+<div id="lista"></div>
+
+<script>
+
+const persone = [
+    { nome: "Luca Fossati", reparto: "Novimat" },
+    { nome: "Marco Galli", reparto: "Squadraborda KFL" },
+    { nome: "Cristian Rossi", reparto: "Squadraborda KFL" },
+    { nome: "Daniele Di Persia", reparto: "Squadraborda KFL" },
+    { nome: "Cristian Gorga", reparto: "Sezionatrice HPP" },
+    { nome: "Alberto Vismara", reparto: "CNC BMG" },
+    { nome: "Ivan Lombardo", reparto: "CNC BMG" },
+    { nome: "Gianluca Letteriello", reparto: "Foratrice BHV-BHX" },
+    { nome: "Silvano Sironi", reparto: "Montaggio" },
+    { nome: "Giuseppe Fossato", reparto: "Montaggio" },
+    { nome: "Sergio Lombardo", reparto: "Montaggio" },
+    { nome: "Matteo Pavamello", reparto: "Montaggio" },
+    { nome: "Antonio Meso", reparto: "Logistica" },
+    { nome: "Stefano Guanziroli", reparto: "Autisti" },
+    { nome: "Maurizio Mascheroni", reparto: "Autisti" },
+    { nome: "Cristian Sala", reparto: "Autisti" },
+    { nome: "Angelo Gatti", reparto: "Autisti" }
+];
+
+const orariPreset = {
+    "std1": ["08:00","12:00","13:30","17:30"],
+    "std2": ["08:00","12:00","13:00","18:00"],
+    "std3": ["06:00","14:00","",""],
+    "std4": ["14:00","22:00","",""]
+};
+
+function CreaCard(p) {
+    return `
+<div class="card persona" data-reparto="${p.reparto}">
+    <div class="title">${p.nome}</div>
+    <div class="sub">${p.reparto}</div>
+
+    <label>Orario preimpostato</label>
+    <select onchange="Preset('${p.nome}', this.value)">
+        <option value="">- Seleziona -</option>
+        <option value="std1">08:00-12:00 / 13:30-17:30</option>
+        <option value="std2">08:00-12:00 / 13:00-18:00</option>
+        <option value="std3">06:00-14:00</option>
+        <option value="std4">14:00-22:00</option>
+    </select>
+
+    <div class="row">
+        <input id="${p.nome}-i1" type="time">
+        <input id="${p.nome}-f1" type="time">
+    </div>
+
+    <div class="row">
+        <input id="${p.nome}-i2" type="time">
+        <input id="${p.nome}-f2" type="time">
+    </div>
+
+    <div id="${p.nome}-res" class="result">Ore totali: 0</div>
+    <div id="${p.nome}-badge" class="badge"></div>
+
+    <label>Note</label>
+    <textarea id="${p.nome}-note" rows="2"></textarea>
+</div>
+`;
+}
+
+document.getElementById("lista").innerHTML =
+    persone.map(p => CreaCard(p)).join("");
+
+function filtra() {
+    let val = document.getElementById("filtroReparto").value;
+    document.querySelectorAll(".persona").forEach(card => {
+        card.style.display = (val === "all" || card.dataset.reparto === val)
+            ? "block" : "none";
+    });
+}
+
+let reparti = [...new Set(persone.map(p => p.reparto))];
+let filtro = document.getElementById("filtroReparto");
+reparti.forEach(r => {
+    filtro.innerHTML += `<option value="${r}">${r}</option>`;
+});
+
+function Preset(nome, p) {
+    let o = orariPreset[p];
+
+    document.getElementById(`${nome}-i1`).value = o[0] || "";
+    document.getElementById(`${nome}-f1`).value = o[1] || "";
+    document.getElementById(`${nome}-i2`).value = o[2] || "";
+    document.getElementById(`${nome}-f2`).value = o[3] || "";
+
+    Calcola(nome);
+}
+
+function Ore(i,f){
+    if(!i||!f) return 0;
+    let[h1,m1]=i.split(":").map(Number);
+    let[h2,m2]=f.split(":").map(Number);
+    return (h2+m2/60)-(h1+m1/60);
+}
+
+function Calcola(nome){
+    let t =
+        Ore(document.getElementById(`${nome}-i1`).value, document.getElementById(`${nome}-f1`).value) +
+        Ore(document.getElementById(`${nome}-i2`).value, document.getElementById(`${nome}-f2`).value);
+
+    let box = document.getElementById(`${nome}-res`);
+    let badge = document.getElementById(`${nome}-badge`);
+
+    box.innerHTML = "Ore totali: " + t.toFixed(2);
+    box.className = "result";
+    badge.innerHTML = "";
+
+    if (t == 8) {
+        box.classList.add("verde");
+    } else if (t > 8) {
+        box.classList.add("giallo");
+        badge.innerHTML = "Straordinario: " + (t - 8).toFixed(2) + " ore";
+        badge.classList.add("badge-extra");
+    } else if (t < 8) {
+        box.classList.add("rosso");
+        badge.innerHTML = "Ferie: " + (8 - t).toFixed(2) + " ore";
+        badge.classList.add("badge-ferie");
+    }
+}
+
+document.querySelectorAll("input").forEach(input=>{
+    input.addEventListener("input", ()=>{
+        let nome=input.id.split("-")[0];
+        Calcola(nome);
+    });
+});
+</script>
+
+</body>
+</html>
